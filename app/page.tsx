@@ -1,113 +1,44 @@
 'use client'
 
-import { useState } from 'react'
-import {
-  Bell,
-  ChevronRight,
-  Heart,
-  Home,
-  Package,
-  Search,
-  ShoppingBag,
-  ShoppingCart,
-  Star,
-  User,
-  X,
-} from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Bell, Check, ChevronRight, Heart, Home, MessageCircle, Package, Plus, Search, ShoppingBag, ShoppingCart, Store, Trash2, User, X } from 'lucide-react'
 
-const roles = [
-  { id: 'customer', label: 'Müşteri', email: 'musteri@alyaz.com', password: '123456' },
-  { id: 'seller', label: 'Satıcı', email: 'satici@alyaz.com', password: '123456' },
-  { id: 'admin', label: 'Admin', email: 'admin@alyaz.com', password: '123456' },
-] as const
+type Role = 'customer' | 'seller' | 'admin'
+type Product = { name: string; category: string; price: number; image: string; stock?: number }
 
-type RoleId = (typeof roles)[number]['id']
+const roles: { id: Role; label: string; email: string }[] = [
+  { id: 'customer', label: 'Müşteri', email: 'musteri@alyaz.com' },
+  { id: 'seller', label: 'Satıcı', email: 'satici@alyaz.com' },
+  { id: 'admin', label: 'Admin', email: 'admin@alyaz.com' },
+]
+const products: Product[] = [
+  { name: 'Minimal Sneaker', category: 'Moda', price: 899.9, image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=85', stock: 42 },
+  { name: 'Seramik Vazo Seti', category: 'Ev & Yaşam', price: 349.9, image: 'https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?auto=format&fit=crop&w=800&q=85', stock: 18 },
+  { name: 'Kablosuz Kulaklık', category: 'Elektronik', price: 1249.9, image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=85', stock: 31 },
+  { name: 'Günlük Çanta', category: 'Moda', price: 599.9, image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=85', stock: 9 },
+]
+const money = (value: number) => value.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })
 
-type Product = {
-  name: string
-  category: string
-  price: string
-  oldPrice?: string
-  rating: string
-  image: string
+function CustomerPanel({ logout }: { logout: () => void }) {
+  const [query, setQuery] = useState(''); const [category, setCategory] = useState('Tümü'); const [liked, setLiked] = useState<string[]>([]); const [cart, setCart] = useState<Product[]>([]); const [drawer, setDrawer] = useState(false); const [coupon, setCoupon] = useState(''); const [discount, setDiscount] = useState(0); const [chat, setChat] = useState(false); const [message, setMessage] = useState('')
+  const filtered = products.filter((p) => (category === 'Tümü' || p.category === category) && p.name.toLocaleLowerCase('tr').includes(query.toLocaleLowerCase('tr')))
+  const subtotal = cart.reduce((sum, p) => sum + p.price, 0); const total = subtotal - discount
+  const applyCoupon = () => { setDiscount(coupon.trim().toUpperCase() === 'ALYAZ30' ? subtotal * .3 : 0) }
+  const sendMessage = () => { if (message.trim()) setMessage('') }
+  return <main className="shop-page"><header className="shop-header"><div className="header-top"><div className="shop-brand"><span className="mini-logo">a</span>alyaz</div><div className="header-actions"><button className="icon-button" aria-label="Canlı desteği aç" onClick={() => setChat(true)}><MessageCircle /></button><button className="icon-button cart-button" aria-label="Sepeti aç" onClick={() => setDrawer(true)}><ShoppingCart />{cart.length > 0 && <span className="cart-count">{cart.length}</span>}</button><button className="avatar-button" aria-label="Çıkış yap" onClick={logout}><User /></button></div></div><div className="greeting"><div><p>Günaydın, Ayşe</p><h1>Bugün ne arıyorsun?</h1></div><div className="delivery-pill">● 30 dk&apos;da teslimat</div></div><label className="search-box"><Search /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ürün, kategori veya marka ara" aria-label="Ürün ara" /></label></header><section className="shop-content"><div className="section-heading"><h2>Kategoriler</h2><span className="muted-label">Keşfet</span></div><div className="category-row">{['Tümü', 'Moda', 'Ev & Yaşam', 'Elektronik', 'Kozmetik', 'Spor'].map((item) => <button className={`category-chip ${category === item ? 'active' : ''}`} key={item} onClick={() => setCategory(item)}>{item}</button>)}</div><div className="promo-banner"><div><span className="promo-tag">Haftanın fırsatı</span><h2>Seçili ürünlerde<br /><strong>%30 indirim</strong></h2><button className="promo-button" onClick={() => { setCoupon('ALYAZ30'); setDrawer(true) }}>Kuponu kullan <ChevronRight /></button></div><div className="promo-orb">%30</div></div><div className="section-heading products-heading"><div><h2>Popüler ürünler</h2><p>Senin için seçtiklerimiz</p></div><span className="muted-label">{filtered.length} ürün</span></div><div className="product-grid">{filtered.map((product) => <article className="product-card" key={product.name}><div className="product-image-wrap"><img src={product.image} alt={product.name} /><button className={`heart-button ${liked.includes(product.name) ? 'liked' : ''}`} aria-label="Favorilere ekle" onClick={() => setLiked((v) => v.includes(product.name) ? v.filter((x) => x !== product.name) : [...v, product.name])}><Heart fill={liked.includes(product.name) ? 'currentColor' : 'none'} /></button></div><div className="product-info"><span className="product-category">{product.category}</span><h3>{product.name}</h3><div className="price-row"><strong>{money(product.price)}</strong><button className="add-button" aria-label="Sepete ekle" onClick={() => { setCart((v) => [...v, product]); setDrawer(true) }}><Plus /></button></div></div></article>)}</div></section><nav className="bottom-nav"><button className="nav-item active"><Home /><span>Ana sayfa</span></button><button className="nav-item"><Package /><span>Siparişlerim</span></button><button className="nav-item" onClick={() => setDrawer(true)}><ShoppingBag /><span>Sepetim</span></button><button className="nav-item" onClick={() => setChat(true)}><MessageCircle /><span>Destek</span></button></nav>{drawer && <div className="drawer-overlay" onClick={() => setDrawer(false)}><aside className="cart-drawer" onClick={(e) => e.stopPropagation()}><div className="drawer-header"><div><p>Alışveriş çantam</p><h2>Sepetim <span>({cart.length})</span></h2></div><button className="close-button" onClick={() => setDrawer(false)} aria-label="Kapat"><X /></button></div>{cart.length === 0 ? <div className="empty-cart"><ShoppingBag /><p>Sepetin şu an boş</p><span>Beğendiğin ürünleri eklemeye başla.</span></div> : <><div className="cart-list">{cart.map((p, i) => <div className="cart-item" key={`${p.name}-${i}`}><img src={p.image} alt="" /><div><h3>{p.name}</h3><span>{p.category}</span><strong>{money(p.price)}</strong></div><button aria-label="Ürünü çıkar" onClick={() => setCart((v) => v.filter((_, index) => index !== i))}><Trash2 /></button></div>)}</div><div className="coupon-box"><label htmlFor="coupon">İndirim kuponun var mı?</label><div><input id="coupon" value={coupon} onChange={(e) => setCoupon(e.target.value)} placeholder="Örn. ALYAZ30" /><button onClick={applyCoupon}>Uygula</button></div>{discount > 0 && <p><Check /> Kupon uygulandı: 30% indirim</p>}</div><div className="cart-footer"><div><span>Ara toplam</span><strong>{money(subtotal)}</strong></div>{discount > 0 && <div className="discount-line"><span>Kupon indirimi</span><strong>-{money(discount)}</strong></div>}<div><span>Toplam</span><strong>{money(total)}</strong></div><button className="checkout-button">Siparişi tamamla <ChevronRight /></button></div></>}</aside></div>}{chat && <div className="chat-overlay" onClick={() => setChat(false)}><section className="chat-panel" onClick={(e) => e.stopPropagation()}><div className="chat-header"><div><span className="online-dot" /> Canlı destek<h2>Size nasıl yardımcı olabiliriz?</h2></div><button className="close-button" onClick={() => setChat(false)} aria-label="Sohbeti kapat"><X /></button></div><div className="chat-messages"><div className="agent-message">Merhaba Ayşe, Alyaz desteğe hoş geldiniz. Size nasıl yardımcı olabilirim?</div><div className="customer-message">Siparişim hakkında bilgi almak istiyorum.</div></div><div className="chat-composer"><input value={message} onChange={(e) => setMessage(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()} placeholder="Mesajınızı yazın..." aria-label="Mesaj" /><button onClick={sendMessage} aria-label="Mesaj gönder"><ChevronRight /></button></div></section></div>}</main>
 }
 
-const categories = ['Tümü', 'Moda', 'Ev & Yaşam', 'Elektronik', 'Kozmetik', 'Spor']
-
-const products: Product[] = [
-  { name: 'Minimal Sneaker', category: 'Moda', price: '899,90 TL', oldPrice: '1.199 TL', rating: '4.9', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=85' },
-  { name: 'Seramik Vazo Seti', category: 'Ev & Yaşam', price: '349,90 TL', rating: '4.8', image: 'https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?auto=format&fit=crop&w=800&q=85' },
-  { name: 'Kablosuz Kulaklık', category: 'Elektronik', price: '1.249,90 TL', oldPrice: '1.499 TL', rating: '4.7', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=85' },
-  { name: 'Günlük Çanta', category: 'Moda', price: '599,90 TL', rating: '4.9', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=85' },
-]
-
-function CustomerDashboard({ onLogout }: { onLogout: () => void }) {
-  const [activeCategory, setActiveCategory] = useState('Tümü')
-  const [favorites, setFavorites] = useState<string[]>([])
-  const [cart, setCart] = useState<Product[]>([])
-  const [cartOpen, setCartOpen] = useState(false)
-  const [search, setSearch] = useState('')
-
-  const filteredProducts = products.filter((product) => {
-    const matchesCategory = activeCategory === 'Tümü' || product.category === activeCategory
-    const matchesSearch = product.name.toLocaleLowerCase('tr').includes(search.toLocaleLowerCase('tr'))
-    return matchesCategory && matchesSearch
-  })
-
-  function toggleFavorite(name: string) {
-    setFavorites((current) => current.includes(name) ? current.filter((item) => item !== name) : [...current, name])
-  }
-
-  return (
-    <main className="shop-page">
-      <header className="shop-header">
-        <div className="header-top">
-          <div className="shop-brand"><span className="mini-logo">a</span><span>alyaz</span></div>
-          <div className="header-actions">
-            <button className="icon-button" type="button" aria-label="Bildirimler"><Bell /></button>
-            <button className="icon-button cart-button" type="button" aria-label="Sepeti aç" onClick={() => setCartOpen(true)}><ShoppingCart />{cart.length > 0 && <span className="cart-count">{cart.length}</span>}</button>
-            <button className="avatar-button" type="button" aria-label="Profil"><User /></button>
-          </div>
-        </div>
-        <div className="greeting"><div><p>Günaydın, Ayşe</p><h1>Bugün ne arıyorsun?</h1></div><div className="delivery-pill"><span>●</span> 30 dk&apos;da teslimat</div></div>
-        <label className="search-box"><Search /><input aria-label="Ürün ara" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Ürün, kategori veya marka ara" /></label>
-      </header>
-
-      <section className="shop-content">
-        <div className="section-heading"><h2>Kategoriler</h2><button type="button">Tümünü gör <ChevronRight /></button></div>
-        <div className="category-row" role="tablist" aria-label="Ürün kategorileri">
-          {categories.map((category, index) => <button key={category} type="button" role="tab" aria-selected={activeCategory === category} className={`category-chip ${activeCategory === category ? 'active' : ''}`} onClick={() => setActiveCategory(category)}><span className={`category-icon category-${index}`} aria-hidden="true">{['✦', '◒', '⌂', '▣', '✧', '◉'][index]}</span>{category}</button>)}
-        </div>
-
-        <div className="promo-banner"><div><span className="promo-tag">Haftanın fırsatı</span><h2>Seçili ürünlerde<br /><strong>%30 indirim</strong></h2><button type="button" className="promo-button">Şimdi keşfet <ChevronRight /></button></div><div className="promo-orb" aria-hidden="true">%30</div></div>
-
-        <div className="section-heading products-heading"><div><h2>Popüler ürünler</h2><p>Senin için seçtiklerimiz</p></div><button type="button">Tümünü gör <ChevronRight /></button></div>
-        <div className="product-grid">
-          {filteredProducts.map((product) => <article className="product-card" key={product.name}><div className="product-image-wrap"><img src={product.image} alt={product.name} /><button type="button" className={`heart-button ${favorites.includes(product.name) ? 'liked' : ''}`} onClick={() => toggleFavorite(product.name)} aria-label={`${product.name} ${favorites.includes(product.name) ? 'favorilerden çıkar' : 'favorilere ekle'}`}><Heart fill={favorites.includes(product.name) ? 'currentColor' : 'none'} /></button>{product.oldPrice && <span className="discount-badge">İndirim</span>}</div><div className="product-info"><span className="product-category">{product.category}</span><h3>{product.name}</h3><div className="rating"><Star fill="currentColor" /> {product.rating}</div><div className="price-row"><strong>{product.price}</strong>{product.oldPrice && <del>{product.oldPrice}</del>}<button type="button" className="add-button" aria-label={`${product.name} sepete ekle`} onClick={() => { setCart((current) => [...current, product]); setCartOpen(true) }}>+</button></div></div></article>)}
-        </div>
-        {filteredProducts.length === 0 && <p className="empty-products">Aramana uygun ürün bulunamadı.</p>}
-      </section>
-
-      <nav className="bottom-nav" aria-label="Ana navigasyon"><button className="nav-item active" type="button"><Home /><span>Ana sayfa</span></button><button className="nav-item" type="button"><Package /><span>Siparişlerim</span></button><button className="nav-item" type="button" onClick={() => setCartOpen(true)}><ShoppingBag /><span>Sepetim</span></button><button className="nav-item" type="button" onClick={onLogout}><User /><span>Profil</span></button></nav>
-
-      {cartOpen && <div className="drawer-overlay" onClick={() => setCartOpen(false)}><aside className="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-title" onClick={(event) => event.stopPropagation()}><div className="drawer-header"><div><p>Alışveriş çantam</p><h2 id="cart-title">Sepetim <span>({cart.length})</span></h2></div><button className="close-button" type="button" aria-label="Sepeti kapat" onClick={() => setCartOpen(false)}><X /></button></div>{cart.length === 0 ? <div className="empty-cart"><ShoppingBag /><p>Sepetin şu an boş</p><span>Beğendiğin ürünleri eklemeye başla.</span></div> : <><div className="cart-list">{cart.map((item, index) => <div className="cart-item" key={`${item.name}-${index}`}><img src={item.image} alt="" /><div><h3>{item.name}</h3><span>{item.category}</span><strong>{item.price}</strong></div><button type="button" aria-label="Ürünü çıkar" onClick={() => setCart((current) => current.filter((_, itemIndex) => itemIndex !== index))}>×</button></div>)}</div><div className="cart-footer"><div><span>Ara toplam</span><strong>{cart.reduce((total, item) => total + Number(item.price.replace('.', '').replace(',', '.').replace(' TL', '')), 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</strong></div><button type="button" className="checkout-button">Siparişi tamamla <ChevronRight /></button></div></>}</aside></div>}
-    </main>
-  )
+function SellerPanel({ logout }: { logout: () => void }) {
+  const [productsList, setProductsList] = useState(products); const [newName, setNewName] = useState(''); const [newPrice, setNewPrice] = useState(''); const [notice, setNotice] = useState('');
+  const addProduct = (e: React.FormEvent) => { e.preventDefault(); if (!newName || !newPrice) return; setProductsList((v) => [{ name: newName, category: 'Yeni ürün', price: Number(newPrice), image: products[0].image, stock: 25 }, ...v]); setNewName(''); setNewPrice(''); setNotice('Ürün başarıyla kataloğa eklendi.') }
+  return <main className="seller-page"><header className="seller-header"><div className="shop-brand"><span className="mini-logo">a</span>alyaz <span className="seller-badge">Satıcı Paneli</span></div><button className="seller-logout" onClick={logout}>Çıkış yap</button></header><section className="seller-content"><div className="seller-welcome"><div><p>Mağazana hoş geldin</p><h1>Merhaba, Alyaz Store</h1></div><div className="store-icon"><Store /></div></div><div className="seller-stats"><div><span>Toplam satış</span><strong>₺24.860</strong><small>+12.5% bu ay</small></div><div><span>Aktif sipariş</span><strong>18</strong><small>4 yeni sipariş</small></div><div><span>Ürün sayısı</span><strong>{productsList.length}</strong><small>3 düşük stokta</small></div></div><div className="seller-grid"><section className="seller-card"><div className="card-title"><div><span className="eyebrow">Katalog yönetimi</span><h2>Yeni ürün ekle</h2></div><Package /></div><form className="seller-form" onSubmit={addProduct}><label>Ürün adı<input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Örn. Keten gömlek" required /></label><label>Fiyat (TL)<input type="number" min="1" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} placeholder="0,00" required /></label><button className="start-button" type="submit"><Plus /> Ürünü ekle</button></form>{notice && <p className="success-note"><Check /> {notice}</p>}</section><section className="seller-card"><div className="card-title"><div><span className="eyebrow">Son hareketler</span><h2>Sipariş yönetimi</h2></div><Bell /></div><div className="order-row"><span className="order-avatar">AY</span><div><strong>#ALY-1048</strong><small>Ayşe Yılmaz · 3 ürün</small></div><span className="order-status">Hazırlanıyor</span></div><div className="order-row"><span className="order-avatar">MK</span><div><strong>#ALY-1047</strong><small>Mehmet Kaya · 1 ürün</small></div><span className="order-status ready">Kargoda</span></div></section></div><section className="seller-card inventory-card"><div className="card-title"><div><span className="eyebrow">Stok takibi</span><h2>Ürünlerin</h2></div><button className="text-button">Tümünü gör <ChevronRight /></button></div><div className="inventory-list">{productsList.slice(0, 4).map((p) => <div className="inventory-row" key={p.name}><img src={p.image} alt="" /><div><strong>{p.name}</strong><small>{p.category}</small></div><span className={(p.stock ?? 0) < 12 ? 'low-stock' : ''}>{p.stock} adet</span></div>)}</div></section></section></main>
 }
 
 export default function Page() {
-  const [activeRole, setActiveRole] = useState<RoleId>('customer')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [message, setMessage] = useState('')
-  const [showDashboard, setShowDashboard] = useState(false)
-  const selectedRole = roles.find((role) => role.id === activeRole) ?? roles[0]
-
-  function selectRole(role: (typeof roles)[number]) { setActiveRole(role.id); setEmail(''); setPassword(''); setMessage('') }
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) { event.preventDefault(); if (activeRole === 'customer') setShowDashboard(true); else setMessage(`${selectedRole.label} hesabı için giriş hazırlanıyor.`) }
-  function quickLogin(role: (typeof roles)[number]) { setActiveRole(role.id); setEmail(role.email); setPassword(role.password); if (role.id === 'customer') setShowDashboard(true); else setMessage(`${role.label} test bilgileri dolduruldu.`) }
-
-  if (showDashboard) return <CustomerDashboard onLogout={() => setShowDashboard(false)} />
-
-  return <main className="login-page"><section className="login-shell" aria-labelledby="welcome-title"><div className="brand-mark" aria-hidden="true">a</div><p className="brand-name">alyaz</p><h1 id="welcome-title">Alyaz&apos;a Hoş Geldiniz</h1><p className="tagline">E-ticaret ve teslimat süper uygulaması</p><div className="login-card"><div className="role-tabs" role="tablist" aria-label="Hesap türü">{roles.map((role) => <button key={role.id} type="button" role="tab" aria-selected={activeRole === role.id} className={activeRole === role.id ? 'role-tab active' : 'role-tab'} onClick={() => selectRole(role)}>{role.label}</button>)}</div><form className="login-form" onSubmit={handleSubmit}><label htmlFor="email">E-posta adresi</label><input id="email" type="email" placeholder="ornek@email.com" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} /><label htmlFor="password">Şifre</label><input id="password" type="password" placeholder="Şifrenizi girin" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /><button className="start-button" type="submit">Alışverişe Başla <span aria-hidden="true">→</span></button></form><div className="divider"><span>veya hızlı test girişi</span></div><div className="quick-login-list">{roles.map((role) => <button key={role.id} type="button" className="quick-login" onClick={() => quickLogin(role)}><span className={`quick-dot ${role.id}`} aria-hidden="true" />{role.label} olarak dene</button>)}</div>{message && <p className="status-message" role="status">{message}</p>}</div><p className="footer-note">Güvenli, hızlı ve herkes için Alyaz.</p></section></main>
+  const [role, setRole] = useState<Role>('customer'); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [session, setSession] = useState<Role | null>(null); const [message, setMessage] = useState('');
+  const selected = roles.find((r) => r.id === role) ?? roles[0]
+  const login = (r: Role = role) => { if (r === 'customer' || r === 'seller') setSession(r); else setMessage('Admin paneli yakında aktif olacak.') }
+  if (session === 'customer') return <CustomerPanel logout={() => setSession(null)} />
+  if (session === 'seller') return <SellerPanel logout={() => setSession(null)} />
+  return <main className="login-page"><section className="login-shell" aria-labelledby="welcome-title"><div className="brand-mark">a</div><p className="brand-name">alyaz</p><h1 id="welcome-title">Alyaz&apos;a Hoş Geldiniz</h1><p className="tagline">E-ticaret ve teslimat süper uygulaması</p><div className="login-card"><div className="role-tabs">{roles.map((r) => <button className={`role-tab ${role === r.id ? 'active' : ''}`} key={r.id} onClick={() => { setRole(r.id); setMessage('') }}>{r.label}</button>)}</div><form className="login-form" onSubmit={(e) => { e.preventDefault(); login() }}><label htmlFor="email">E-posta adresi</label><input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ornek@email.com" required /><label htmlFor="password">Şifre</label><input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Şifrenizi girin" required /><button className="start-button">{role === 'seller' ? 'Satıcı paneline geç' : 'Alışverişe Başla'} <span>→</span></button></form><div className="divider"><span>veya hızlı test girişi</span></div><div className="quick-login-list">{roles.map((r) => <button className="quick-login" key={r.id} onClick={() => login(r.id)}><span className={`quick-dot ${r.id}`} />{r.label} olarak dene</button>)}</div>{message && <p className="status-message">{message}</p>}</div><p className="footer-note">Güvenli, hızlı ve herkes için Alyaz.</p></section></main>
 }
